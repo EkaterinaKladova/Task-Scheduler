@@ -16,7 +16,7 @@ New additions:
 "Days Ahead" Calculation:\
 A recent addition to motivate me to get ahead on work.  This is calculated as the number of empty days after the due date tasks are initially placed, but before they are pulled forward.  You can also think of this as the number of days for which I can do nothing before I really need to start working on things.
 
-"Posted" Column:
+"Posted" Column:\
 Added so that the scheduler does not suggest doing tasks that are not yet available (such as a quiz which opens later in the week) before their time.  This will allow for future planning without overwhelming the current schedule.
 
 
