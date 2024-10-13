@@ -5,7 +5,7 @@
 
 // add tasks to days
 //    start at the last due date.  place tasks on the day closest to their due date as space is available 
-//      and as long as there arent >7 tasks per day
+//      and as long as there arent >7 tasks per day and the day's date is after the "posted on" date
 //    add asap tasks to empty slots from soonest date first, ranked by order
 //    if still empty slots left, pull tasks up by looking for next closest task that will fit
 
@@ -21,10 +21,11 @@ td.setMilliseconds(0)
 
 const dayLength = 24 * 60 * 60 * 1000
 
-function Task(name, slots, due = "--") {
+function Task(name, slots, due = "--", posted = td) {
   this.name = name
   this.slots = slots
   this.due = due // calculate morning when recording the task
+  this.posted = posted
 }
 
 function DayPlan(day, allSlots) {
@@ -153,10 +154,10 @@ function getDueTasks(sheet, range) {
     if (taskSlots > 5) {
       var half1 = (taskSlots/2) | 0
       var half2 = taskSlots - half1
-      result.push(new Task(range.getCell(i, 2).getValue(), half1, due))
-      result.push(new Task(range.getCell(i, 2).getValue(), half2, due))
+      result.push(new Task(range.getCell(i, 2).getValue(), half1, due, range.getCell(i, 6).getValue()))
+      result.push(new Task(range.getCell(i, 2).getValue(), half2, due, range.getCell(i, 6).getValue()))
     } else {
-      result.push(new Task(range.getCell(i, 2).getValue(), taskSlots, due))
+      result.push(new Task(range.getCell(i, 2).getValue(), taskSlots, due, range.getCell(i, 6).getValue()))
     }
     
     i++;
@@ -177,6 +178,7 @@ function getTasks(sheet, range) {
 }
 
 function placeTodo(plan, todo) {
+
   for (var i in todo) {
     // TODO
     // keep track of how much empty space there is (new array) ???
@@ -209,8 +211,8 @@ function placeNodue(plan, tasks) {
 
   for (d of days) {
     var i = 0;
-    while (plan.get(d).freeSlots > 0 && tasks[i] !== undefined) {
-      if (plan.get(d).freeSlots >= tasks[i].slots && plan.get(d).tasks.length < 7) {
+    while (plan.get(d).freeSlots > 0 && tasks[i] !== undefined) { 
+      if (plan.get(d).freeSlots >= tasks[i].slots && plan.get(d).tasks.length < 7 && tasks[i].posted <= plan.get(d).day) { 
         plan.get(d).addTask(tasks[i])
         tasks.splice(i, 1)
       } else {
@@ -237,7 +239,7 @@ function pullUp(plan) {
       
       var dayTasks = Array.from(plan.get(days[d+i]).tasks)
       for (t of dayTasks) {
-        if (t.slots <= plan.get(days[d]).freeSlots) {
+        if (t.slots <= plan.get(days[d]).freeSlots && t.posted <= plan.get(days[d]).day) {
           plan.get(days[d]).addTask(t)
           plan.get(days[d+i]).rmTask(t)
         }
@@ -267,11 +269,11 @@ function placeTasks(plan, todo, asap, nodue) {
     Logger.log("Not all ASAP tasks assigned")
     throw(new Error())
   }
+
   var daysAhead = countDaysAhead(plan)
 
   pullUp(plan)
   placeNodue(plan, nodue)
-
   return daysAhead
 }
 
@@ -313,9 +315,9 @@ function main() {
   SpreadsheetApp.setActiveSpreadsheet(ss);
   var sheets = SpreadsheetApp.getActiveSpreadsheet().getSheets();
 
-  const asapRange = "F2:H"
-  const nodueRange = "I2:K"
-  const todoRange = "A2:E"
+  const asapRange = "G2:I"
+  const nodueRange = "J2:L"
+  const todoRange = "A2:F"
 
   // make vars
   var asap = getTasks(sheets[1], asapRange)
@@ -327,7 +329,7 @@ function main() {
     nodue.push(todo[0])
     todo.shift()
   }
-  
+
   // get free time of days until last due date
   var untilLast = ((todo[0].due.getTime() - td.getTime()) / (dayLength) + 1)
   if (untilLast < 7) {untilLast = 7}
@@ -368,5 +370,3 @@ function main() {
   }
 
 }
-
-// subtasks?
